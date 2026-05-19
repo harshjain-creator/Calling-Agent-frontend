@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Play, Pause, Volume2 } from 'lucide-react'
+import { Card, CardContent } from '@/components/ui/card'
 
 function fmt(s) {
   if (!isFinite(s)) return '0:00'
@@ -41,15 +42,13 @@ export default function AudioPlayer({ src }) {
     if (playing) { a.pause(); setPlaying(false) }
     else { a.play(); setPlaying(true) }
   }
-
-  const seek = (e) => {
+  const seek = e => {
     const a = ref.current
     if (!a) return
     a.currentTime = Number(e.target.value)
     setCur(a.currentTime)
   }
-
-  const changeVol = (e) => {
+  const changeVol = e => {
     const a = ref.current
     if (!a) return
     a.volume = Number(e.target.value)
@@ -58,47 +57,53 @@ export default function AudioPlayer({ src }) {
 
   if (!src) {
     return (
-      <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6 text-gray-400">
-        No recording available for this call.
-      </div>
+      <Card>
+        <CardContent className="pt-6 text-[var(--color-fg-muted)] text-sm">
+          No recording available for this call.
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6">
-      <audio ref={ref} src={src} preload="metadata" />
-      {err ? (
-        <div className="text-red-300 text-sm">Failed to load recording. Signed URL may have expired.</div>
-      ) : (
-        <>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={toggle}
-              className="w-12 h-12 rounded-full bg-gradient-to-r from-pink-500 to-blue-500 text-white flex items-center justify-center hover:scale-105 transition"
-            >
-              {playing ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-            </button>
-            <div className="flex-1 flex items-center gap-3">
-              <span className="text-white/70 text-sm tabular-nums w-12">{fmt(cur)}</span>
-              <input
-                type="range" min={0} max={dur || 0} value={cur} step="0.1"
-                onChange={seek}
-                className="flex-1 accent-pink-400"
-              />
-              <span className="text-white/70 text-sm tabular-nums w-12 text-right">{fmt(dur)}</span>
+    <Card>
+      <CardContent className="pt-6">
+        <audio ref={ref} src={src} preload="metadata" />
+        {err ? (
+          <div className="text-red-500 text-sm">Failed to load recording. Signed URL may have expired.</div>
+        ) : (
+          <>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={toggle}
+                className="h-12 w-12 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-[var(--color-accent-soft)]"
+              >
+                {playing ? <Pause className="size-5" /> : <Play className="size-5 ml-0.5" />}
+              </button>
+              <div className="flex-1 flex items-center gap-3 min-w-0">
+                <span className="text-[var(--color-fg-muted)] text-sm tabular-nums w-12">{fmt(cur)}</span>
+                <input
+                  type="range" min={0} max={dur || 0} value={cur} step="0.1"
+                  onChange={seek}
+                  className="flex-1 accent-[var(--color-accent)]"
+                />
+                <span className="text-[var(--color-fg-muted)] text-sm tabular-nums w-12 text-right">{fmt(dur)}</span>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 w-32">
+                <Volume2 className="size-4 text-[var(--color-fg-subtle)]" />
+                <input
+                  type="range" min={0} max={1} step="0.05" value={vol}
+                  onChange={changeVol}
+                  className="flex-1 accent-[var(--color-accent)]"
+                />
+              </div>
             </div>
-            <div className="flex items-center gap-2 w-32">
-              <Volume2 className="w-4 h-4 text-white/60" />
-              <input
-                type="range" min={0} max={1} step="0.05" value={vol}
-                onChange={changeVol}
-                className="flex-1 accent-blue-400"
-              />
-            </div>
-          </div>
-          <p className="text-xs text-gray-400 mt-3">Stereo recording — caller on left channel, agent (Rahul) on right.</p>
-        </>
-      )}
-    </div>
+            <p className="text-xs text-[var(--color-fg-subtle)] mt-3">
+              Stereo recording — caller on left channel, agent (Rahul) on right.
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
   )
 }
