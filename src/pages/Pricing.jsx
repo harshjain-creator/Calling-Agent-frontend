@@ -42,7 +42,7 @@ const COMPONENT_BREAKDOWN = [
 
 const SELLING_PLANS = [
   {
-    plan: 'Pay As You Go', calls: '—', dur: 5, rate: 12,
+    plan: 'Pay As You Go', calls: '—', dur: 5, rate: null,
     revenue: null, infra: null, profit: null, margin: null,
     badge: 'No Commitment',
     payg: true,
@@ -214,8 +214,16 @@ function SellingView() {
                 {p.plan}{!p.popular && ` · ${p.badge}`}
               </CardDescription>
               <div className="mt-2 flex items-baseline gap-1">
-                <span className="font-display text-4xl font-bold tracking-tight">₹{p.rate}</span>
-                <span className="text-[var(--color-fg-muted)] text-sm">/ min</span>
+                {p.rate != null ? (
+                  <>
+                    <span className="font-display text-4xl font-bold tracking-tight">₹{p.rate}</span>
+                    <span className="text-[var(--color-fg-muted)] text-sm">/ min</span>
+                  </>
+                ) : (
+                  <span className="font-display text-3xl font-bold tracking-tight text-[var(--color-fg-muted)]">
+                    Coming Soon
+                  </span>
+                )}
               </div>
               <p className="text-xs text-[var(--color-fg-subtle)] mt-1">
                 {p.payg
@@ -277,7 +285,7 @@ function SellingView() {
                 <tr key={p.plan} className="border-t border-[var(--color-border)]">
                   <Td><span className="font-semibold">{p.plan}</span></Td>
                   <Td>{p.calls}</Td>
-                  <Td>₹{p.rate} / min</Td>
+                  <Td>{p.rate != null ? `₹${p.rate} / min` : 'TBD'}</Td>
                   <Td>{p.revenue != null ? INR(p.revenue) : '—'}</Td>
                   <Td>{p.infra != null ? INR(p.infra) : '—'}</Td>
                   <Td className="text-emerald-500 font-semibold">{p.profit != null ? INR(p.profit) : '—'}</Td>
