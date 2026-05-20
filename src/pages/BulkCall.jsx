@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, Upload, FileText, Play, Loader2, CheckCircle2, AlertCircle,
-  Phone, Trash2, Download,
+  Phone, Trash2, Download, Lock, Plus,
 } from 'lucide-react'
 
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useScenarios } from '@/hooks/useScenarios'
+import ScenarioCreateDialog from '@/components/ScenarioCreateDialog'
 
 // Minimal CSV parser — handles quoted fields + escaped quotes.
 function parseCSV(text) {
@@ -68,11 +69,14 @@ const SAMPLE_CSV =
   'Harsh Jain,harsh@example.com,9876543210,Call from Fristine Infotech about staffing services\n' +
   'Priya Singh,priya@example.com,9123456780,\n'
 
-export default function BulkCall() {
+export default function BulkCall({ embedded = false } = {}) {
   const navigate = useNavigate()
   const fileRef  = useRef(null)
+  const { scenarios, loading: loadingScenarios, error: scenariosError, reload: reloadScenarios } = useScenarios()
+  const [scenarioModalOpen, setScenarioModalOpen] = useState(false)
+
   const [rows, setRows] = useState([])
-  const [defaultScenario, setDefaultScenario] = useState('')
+  const [defaultScenarioId, setDefaultScenarioId] = useState('')
   const [delayMs,   setDelayMs]   = useState(4000)
   const [maxConcur, setMaxConcur] = useState(3)
   const [submitting, setSubmitting] = useState(false)
@@ -80,6 +84,13 @@ export default function BulkCall() {
   const [progress, setProgress] = useState(null)
   const [error,    setError]    = useState(null)
   const [dragging, setDragging] = useState(false)
+
+  // Auto-pick first scenario when fetched
+  useEffect(() => {
+    if (!defaultScenarioId && scenarios.length) setDefaultScenarioId(scenarios[0].id)
+  }, [scenarios, defaultScenarioId])
+
+  const selectedScenario = scenarios.find(s => s.id === defaultScenarioId)
 
   const ingestFile = async (f) => {
     setError(null)
@@ -107,7 +118,8 @@ export default function BulkCall() {
   }
 
   const validRows = rows.map(r => ({ ...r, _err: validateRow(r) })).map(r => {
-    if (!r.scenario && !defaultScenario.trim()) return { ...r, _err: r._err || 'no scenario (set default below)' }
+    // If row has inline scenario text → OK. Else needs default scenario_id selected.
+    if (!r.scenario && !defaultScenarioId) return { ...r, _err: r._err || 'no scenario (pick a default above)' }
     return r
   })
   const okCount  = validRows.filter(r => !r._err).length
@@ -118,13 +130,16 @@ export default function BulkCall() {
     try {
       const payload = {
         rows: validRows.filter(r => !r._err).map(r => ({
-          name: r.name, email: r.email, phone: r.phone, scenario: r.scenario || defaultScenario,
+          name: r.name, email: r.email, phone: r.phone,
+          // Inline row scenario takes priority; otherwise backend uses default_scenario_id
+          ...(r.scenario ? { scenario: r.scenario } : {}),
         })),
-        scenario: defaultScenario,
+        default_scenario_id: defaultScenarioId,
         delay_ms: delayMs,
         max_concurrent: maxConcur,
       }
       if (!payload.rows.length) throw new Error('No valid rows to dial')
+      if (!defaultScenarioId)  throw new Error('Pick a default scenario first')
       const data = await apiFetch('/bulk_call', { method: 'POST', body: payload })
       if (data.status !== 'started' && !data.run_id) throw new Error(data.error || 'Failed to start')
       setRunId(data.run_id)
@@ -151,17 +166,21 @@ export default function BulkCall() {
   }, [runId])
 
   return (
-    <div className="w-full px-4 sm:px-6 py-8 space-y-6 max-w-5xl mx-auto">
-      {/* Heading */}
-      <div className="flex items-start gap-3 flex-wrap">
-        <Button variant="ghost" size="icon" asChild className="mt-0.5">
-          <Link to="/admin/calls"><ArrowLeft className="size-4" /></Link>
-        </Button>
-        <div>
-          <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight">Bulk Call</h1>
-          <p className="text-sm text-[var(--color-fg-muted)] mt-1">Upload CSV → dial everyone in parallel.</p>
+    <div className={embedded
+      ? "w-full space-y-6"
+      : "w-full px-4 sm:px-6 py-8 space-y-6 max-w-5xl mx-auto"}>
+      {/* Heading — hidden when embedded inside /call page (CallPage already has its own heading) */}
+      {!embedded && (
+        <div className="flex items-start gap-3 flex-wrap">
+          <Button variant="ghost" size="icon" asChild className="mt-0.5">
+            <Link to="/admin/calls"><ArrowLeft className="size-4" /></Link>
+          </Button>
+          <div>
+            <h1 className="font-display text-3xl sm:text-4xl font-semibold tracking-tight">Bulk Call</h1>
+            <p className="text-sm text-[var(--color-fg-muted)] mt-1">Upload CSV → dial everyone in parallel.</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* CSV upload */}
       <Card>
@@ -254,14 +273,49 @@ export default function BulkCall() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Default Scenario (used when row leaves it blank)</label>
-            <Textarea
-              value={defaultScenario}
-              onChange={e => setDefaultScenario(e.target.value)}
-              rows={3}
-              placeholder="Calling from Fristine Infotech about staffing services…"
-              className="resize-none"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium">Default Scenario</label>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setScenarioModalOpen(true)}>
+                <Plus className="size-3.5" /> New Scenario
+              </Button>
+            </div>
+            {loadingScenarios ? (
+              <div className="flex items-center gap-2 text-sm text-[var(--color-fg-muted)] py-2">
+                <Loader2 className="size-4 animate-spin" /> Loading scenarios…
+              </div>
+            ) : scenariosError ? (
+              <p className="text-sm text-red-500">{String(scenariosError)}</p>
+            ) : scenarios.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-[var(--color-border-strong)] p-4 text-center">
+                <p className="text-sm text-[var(--color-fg-muted)]">No scenarios yet.</p>
+                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => setScenarioModalOpen(true)}>
+                  <Plus className="size-3.5" /> Create first scenario
+                </Button>
+              </div>
+            ) : (
+              <>
+                <select
+                  value={defaultScenarioId}
+                  onChange={e => setDefaultScenarioId(e.target.value)}
+                  className="w-full h-11 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+                >
+                  {scenarios.map(s => (
+                    <option key={s.id} value={s.id}>
+                      {s.is_private ? '🔒 ' : ''}{s.title}
+                    </option>
+                  ))}
+                </select>
+                {selectedScenario?.summary && (
+                  <p className="text-xs text-[var(--color-fg-muted)] mt-2 leading-relaxed">
+                    {selectedScenario.is_private && <Lock className="inline size-3 text-[var(--color-accent)] mr-1 align-[-2px]" />}
+                    {selectedScenario.summary}
+                  </p>
+                )}
+                <p className="text-xs text-[var(--color-fg-subtle)] mt-1.5">
+                  Used when a CSV row leaves the <code className="text-[var(--color-fg-muted)]">scenario</code> column blank.
+                </p>
+              </>
+            )}
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -359,6 +413,15 @@ export default function BulkCall() {
           </CardContent>
         </Card>
       )}
+
+      <ScenarioCreateDialog
+        open={scenarioModalOpen}
+        onOpenChange={setScenarioModalOpen}
+        onCreated={async (created) => {
+          await reloadScenarios()
+          if (created?.id) setDefaultScenarioId(created.id)
+        }}
+      />
     </div>
   )
 }

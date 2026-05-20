@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { Play, Pause, Volume2 } from 'lucide-react'
+import { Play, Pause, Volume2, Download, Trash2, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 
 function fmt(s) {
   if (!isFinite(s)) return '0:00'
@@ -9,13 +10,55 @@ function fmt(s) {
   return `${m}:${sec}`
 }
 
-export default function AudioPlayer({ src }) {
+export default function AudioPlayer({ src, filename = 'call-recording.wav', onDelete }) {
   const ref = useRef(null)
-  const [playing, setPlaying] = useState(false)
-  const [cur, setCur] = useState(0)
-  const [dur, setDur] = useState(0)
-  const [vol, setVol] = useState(1)
-  const [err, setErr] = useState(false)
+  const [playing,     setPlaying]     = useState(false)
+  const [cur,         setCur]         = useState(0)
+  const [dur,         setDur]         = useState(0)
+  const [vol,         setVol]         = useState(1)
+  const [err,         setErr]         = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const [deleting,    setDeleting]    = useState(false)
+
+  async function handleDelete() {
+    if (!onDelete) return
+    if (!confirm('Delete this recording permanently? This cannot be undone.')) return
+    setDeleting(true)
+    try {
+      await onDelete()
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  /**
+   * Download recording. Fetch as blob first → object URL → anchor click.
+   * Avoids relying on `download` attr cross-origin (Supabase signed URLs
+   * don't set Content-Disposition by default).
+   */
+  async function handleDownload() {
+    if (!src) return
+    setDownloading(true)
+    try {
+      const r = await fetch(src)
+      if (!r.ok) throw new Error(`HTTP ${r.status}`)
+      const blob = await r.blob()
+      const url  = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      // Revoke after short delay (Safari needs the URL alive briefly)
+      setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (e) {
+      // Fallback: direct link
+      window.open(src, '_blank', 'noopener')
+    } finally {
+      setDownloading(false)
+    }
+  }
 
   useEffect(() => {
     const a = ref.current
@@ -97,9 +140,30 @@ export default function AudioPlayer({ src }) {
                   className="flex-1 accent-[var(--color-accent)]"
                 />
               </div>
+              <Button
+                variant="outline" size="icon"
+                onClick={handleDownload}
+                disabled={downloading}
+                aria-label="Download recording"
+                title="Download recording"
+              >
+                <Download className={`size-4 ${downloading ? 'animate-pulse' : ''}`} />
+              </Button>
+              {onDelete && (
+                <Button
+                  variant="outline" size="icon"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  aria-label="Delete recording"
+                  title="Delete recording"
+                  className="text-red-500 hover:bg-red-500/10 hover:border-red-500/40"
+                >
+                  {deleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                </Button>
+              )}
             </div>
             <p className="text-xs text-[var(--color-fg-subtle)] mt-3">
-              Stereo recording — caller on left channel, agent (Rahul) on right.
+              Stereo recording — caller on left channel, agent on right.
             </p>
           </>
         )}

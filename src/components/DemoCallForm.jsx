@@ -1,59 +1,73 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  Loader2, CheckCircle2, AlertCircle, PhoneCall, User, Mail, Phone, MessageSquare,
+  Loader2, CheckCircle2, AlertCircle, PhoneCall, User, Mail, Phone,
+  Sparkles, Lock, Pencil,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { apiFetch } from '@/lib/api'
+import { useScenarios } from '@/hooks/useScenarios'
 
-const PRESET_SCENARIOS = [
-  { id: 'staffing',    label: 'Staffing Service',
-    text: 'Staffing and recruitment agency. Call the prospect to understand their hiring needs — open roles, headcount, timeline, locations. Briefly mention our candidate-pool size and turnaround. Ask if a 15-minute call with an account manager works this week.' },
-  { id: 'fitness',     label: 'Fitness',
-    text: 'Fitness studio / gym chain. Confirm interest in a fitness membership. Ask about fitness goals (weight loss, strength, general health), preferred location and timing. If the prospect hesitates on price, offer a free trial class. Capture preferred call-back time for a tour.' },
-  { id: 'real-estate', label: 'Real Estate',
-    text: 'Real estate consultancy. Prospect enquired about properties recently. Verify budget range, preferred locality, BHK configuration, and intent (investment vs end-use). Offer to schedule a site visit. Capture WhatsApp number for sending a curated property list.' },
-  { id: 'maintenance', label: 'Maintenance',
-    text: 'Building / property maintenance service. Call existing or prospective customer to schedule routine servicing (AC, plumbing, electrical, deep-clean). Confirm address and preferred date/time slot. Offer an annual maintenance contract with discount if appropriate.' },
-  { id: 'healthcare',  label: 'Healthcare',
-    text: 'Clinic / diagnostic centre follow-up. Patient booked an appointment or test. Confirm the date, time and pre-test instructions (fasting, hydration, paperwork). Answer any questions politely and offer to reschedule if the slot does not work.' },
-  { id: 'edtech',      label: 'EdTech',
-    text: 'Online education / coaching platform. Lead filled an enquiry form for a course. Confirm which course they are interested in, their goal (skill-up, exam prep, career change), and current background. Pitch the next cohort start date and offer a free trial class.' },
-]
+const CUSTOM = '__custom__'
 
 /**
  * DemoCallForm — body-only form (no outer page chrome). Reused by:
  *   - DemoCallModal (dialog popup on landing)
  *   - /demo route page (DemoForm wraps this in a centered section)
  *
+ * Scenarios come from /scenarios (server-scoped: anonymous → public only).
+ * User picks a chip; we send scenario_id to /demo_call so the backend
+ * resolves the full text (and re-validates access on its end).
+ *
  * Props:
  *   onSuccess(data) — optional callback after successful POST /demo_call
  */
 export default function DemoCallForm({ onSuccess } = {}) {
+  const { scenarios, loading: loadingScenarios, error: scenariosError } = useScenarios({ skipAuth: true })
+
   const [name,      setName]      = useState('')
   const [email,     setEmail]     = useState('')
   const [phone,     setPhone]     = useState('')
-  const [scenario,  setScenario]  = useState(PRESET_SCENARIOS[0].text)
+  const [scenarioId, setScenarioId] = useState('')   // either a real id OR CUSTOM sentinel
+  const [customText, setCustomText] = useState('')
   const [remaining, setRemaining] = useState(null)
   const [pending,   setPending]   = useState(false)
   const [success,   setSuccess]   = useState(false)
   const [error,     setError]     = useState(null)
 
+  // Auto-pick first scenario once fetched
+  useEffect(() => {
+    if (!scenarioId && scenarios.length) setScenarioId(scenarios[0].id)
+  }, [scenarios, scenarioId])
+
+  const selected   = scenarios.find(s => s.id === scenarioId)
+  const isCustom   = scenarioId === CUSTOM
+
   async function handleSubmit(e) {
     e.preventDefault()
+    if (!scenarioId) {
+      setError({ message: 'Pick a scenario first' })
+      return
+    }
+    if (isCustom && !customText.trim()) {
+      setError({ message: 'Write your scenario or pick a preset' })
+      return
+    }
     setPending(true); setError(null); setSuccess(false)
     try {
+      const body = {
+        name:         name.trim(),
+        email:        email.trim(),
+        phone_number: phone.trim(),
+      }
+      if (isCustom) body.scenario    = customText.trim()
+      else          body.scenario_id = scenarioId
       const data = await apiFetch('/demo_call', {
         method: 'POST', skipAuth: true,
-        body: {
-          name:         name.trim(),
-          email:        email.trim(),
-          phone_number: phone.trim(),
-          scenario:     scenario.trim(),
-        },
+        body,
       })
       if (typeof data.demo_remaining === 'number') setRemaining(data.demo_remaining)
       setSuccess(true)
@@ -94,7 +108,7 @@ export default function DemoCallForm({ onSuccess } = {}) {
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="dm-name" >Your name</Label>
+          <Label htmlFor="dm-name">Your name</Label>
           <div className="relative">
             <User className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--color-fg-subtle)]" />
             <Input id="dm-name" placeholder="Rahul Sharma" value={name} onChange={e => setName(e.target.value)} required className="pl-10" />
@@ -117,35 +131,85 @@ export default function DemoCallForm({ onSuccess } = {}) {
         </div>
       </div>
 
+      {/* Scenario picker */}
       <div className="space-y-2">
-        <Label>Pick a preset</Label>
-        <div className="flex flex-wrap gap-2">
-          {PRESET_SCENARIOS.map(s => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => setScenario(s.text)}
-              className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                scenario === s.text
-                  ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
-                  : 'border-[var(--color-border-strong)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
+        <div className="flex items-center justify-between">
+          <Label>Pick a scenario</Label>
+          {selected?.is_private && (
+            <span className="inline-flex items-center gap-1 text-[10px] uppercase tracking-wider text-[var(--color-accent)]">
+              <Lock className="size-3" /> Private
+            </span>
+          )}
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="dm-scenario">Scenario / brief</Label>
-        <div className="relative">
-          <MessageSquare className="absolute left-3.5 top-3.5 size-4 text-[var(--color-fg-subtle)]" />
-          <Textarea id="dm-scenario" value={scenario} onChange={e => setScenario(e.target.value)} required className="pl-10 min-h-[110px]" />
-        </div>
-        <p className="text-sm text-[var(--color-fg-subtle)]">
-          Describe what the agent should do on the call.
-        </p>
+        {loadingScenarios ? (
+          <div className="flex items-center gap-2 text-sm text-[var(--color-fg-muted)] py-2">
+            <Loader2 className="size-4 animate-spin" /> Loading scenarios…
+          </div>
+        ) : scenariosError ? (
+          <p className="text-sm text-red-500">{String(scenariosError)}</p>
+        ) : scenarios.length === 0 ? (
+          <p className="text-sm text-[var(--color-fg-subtle)]">
+            No scenarios available. Ask your admin to add one.
+          </p>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {scenarios.map(s => {
+                const active = s.id === scenarioId
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setScenarioId(s.id)}
+                    className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                      active
+                        ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
+                        : 'border-[var(--color-border-strong)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
+                    }`}
+                  >
+                    {s.is_private && <Lock className="inline size-3 mr-1 align-[-2px]" />}
+                    {s.title}
+                  </button>
+                )
+              })}
+              {/* Custom-text option */}
+              <button
+                type="button"
+                onClick={() => setScenarioId(CUSTOM)}
+                className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                  isCustom
+                    ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
+                    : 'border-dashed border-[var(--color-border-strong)] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
+                }`}
+              >
+                <Pencil className="inline size-3 mr-1 align-[-2px]" />
+                Write your own
+              </button>
+            </div>
+            {selected?.summary && !isCustom && (
+              <div className="flex items-start gap-2 mt-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-muted)] px-3 py-2.5">
+                <Sparkles className="size-4 text-[var(--color-accent)] shrink-0 mt-0.5" />
+                <p className="text-sm text-[var(--color-fg-muted)] leading-relaxed">{selected.summary}</p>
+              </div>
+            )}
+            {isCustom && (
+              <div className="mt-2 space-y-1.5">
+                <Textarea
+                  value={customText}
+                  onChange={e => setCustomText(e.target.value)}
+                  rows={4}
+                  placeholder="Describe what the agent should do on the call — company, products, target outcome, any do/don't rules…"
+                  className="min-h-[110px]"
+                  required
+                />
+                <p className="text-xs text-[var(--color-fg-subtle)]">
+                  One-off scenario — used for this call only. Not stored.
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {errMsg && (
@@ -158,14 +222,15 @@ export default function DemoCallForm({ onSuccess } = {}) {
         </motion.div>
       )}
 
-      <Button type="submit" variant="gradient" size="lg" className="w-full" disabled={pending}>
+      <Button
+        type="submit" variant="gradient" size="lg" className="w-full"
+        disabled={pending || !scenarioId || (isCustom && !customText.trim())}
+      >
         {pending
           ? <><Loader2 className="size-4 animate-spin" /> Dialing…</>
           : <><PhoneCall className="size-4" /> Place Call</>
         }
       </Button>
-
-      
     </form>
   )
 }

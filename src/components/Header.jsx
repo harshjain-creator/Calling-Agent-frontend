@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { LogIn, LogOut, LayoutDashboard, User2 } from 'lucide-react'
+import { LogIn, LogOut, User2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { Button } from '@/components/ui/button'
 import ThemeToggle from '@/components/ThemeToggle'
 import LoginModal from '@/components/LoginModal'
 import { useAuth } from '@/contexts/AuthContext'
-import { COMPANY, NAV_LINKS } from '@/config'
+import { COMPANY, NAV_LINKS, CLIENT_NAV_LINKS, SUPER_NAV_LINKS } from '@/config'
 
 function NavItem({ to, children }) {
   return (
@@ -47,7 +47,11 @@ export default function Header() {
   const { isAuthed, role, user, logout } = useAuth()
   const navigate = useNavigate()
 
-  const dashHref = role === 'super_admin' ? '/superadmin' : '/dashboard'
+  // Pick the nav list based on auth state + role
+  let activeNavLinks = NAV_LINKS
+  if (isAuthed) {
+    activeNavLinks = role === 'super_admin' ? SUPER_NAV_LINKS : CLIENT_NAV_LINKS
+  }
 
   async function handleLogout() {
     await logout()
@@ -67,9 +71,9 @@ export default function Header() {
             />
           </Link>
 
-          {/* Center nav */}
+          {/* Center nav — role-aware */}
           <nav className="hidden md:flex items-center gap-1">
-            {NAV_LINKS.map(l => <NavItem key={l.to} to={l.to}>{l.label}</NavItem>)}
+            {activeNavLinks.map(l => <NavItem key={l.to} to={l.to}>{l.label}</NavItem>)}
           </nav>
 
           {/* Right actions */}
@@ -77,20 +81,14 @@ export default function Header() {
             <ThemeToggle />
             {isAuthed ? (
               <>
-                <Button variant="outline" size="sm" asChild>
-                  <Link to={dashHref}>
-                    <LayoutDashboard className="size-4" />
-                    <span className="hidden sm:inline">Dashboard</span>
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="sm" onClick={handleLogout}>
-                  <LogOut className="size-4" />
-                  <span className="hidden sm:inline">Logout</span>
-                </Button>
                 <span className="hidden lg:flex items-center gap-1.5 px-2 text-xs text-[var(--color-fg-muted)]">
                   <User2 className="size-3.5" />
                   {user?.email}
                 </span>
+                <Button variant="ghost" size="sm" onClick={handleLogout}>
+                  <LogOut className="size-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </Button>
               </>
             ) : (
               <Button variant="gradient" size="sm" onClick={() => setLoginOpen(true)}>

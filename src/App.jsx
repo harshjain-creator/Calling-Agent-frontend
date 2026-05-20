@@ -11,9 +11,17 @@ import Pricing      from '@/pages/Pricing'
 import Contact      from '@/pages/Contact'
 import DemoForm     from '@/pages/DemoForm'
 
-import AdminCalls       from '@/pages/AdminCalls'
-import AdminCallDetail  from '@/pages/AdminCallDetail'
-import BulkCall         from '@/pages/BulkCall'
+import ClientDashboard      from '@/pages/ClientDashboard'
+import AdminCalls           from '@/pages/AdminCalls'
+import AdminCallDetail      from '@/pages/AdminCallDetail'
+import BulkCall             from '@/pages/BulkCall'
+import CallPage             from '@/pages/CallPage'
+import ScenariosPage        from '@/pages/ScenariosPage'
+
+import SuperAdminDashboard  from '@/pages/SuperAdminDashboard'
+import SuperAdminUsers      from '@/pages/SuperAdminUsers'
+import SuperAdminCostRates  from '@/pages/SuperAdminCostRates'
+import SuperAdminPlans      from '@/pages/SuperAdminPlans'
 
 export default function App() {
   return (
@@ -30,17 +38,22 @@ export default function App() {
             <Route path="/demo"       element={<DemoForm />} />
           </Route>
 
-          {/* Client-admin scoped — bulk + own org calls */}
+          {/* Client admin + super admin shared scope */}
           <Route element={<RequireAuth roles={['client_admin', 'super_admin']} />}>
-            <Route path="/dashboard"        element={<Navigate to="/admin/calls" replace />} />
-            <Route path="/bulk"             element={<BulkCall />} />
+            <Route path="/dashboard"        element={<ClientDashboard />} />
+            <Route path="/call"             element={<CallPage />} />
+            <Route path="/bulk"             element={<Navigate to="/call" replace />} />
             <Route path="/admin/calls"      element={<AdminCalls />} />
             <Route path="/admin/calls/:id"  element={<AdminCallDetail />} />
+            <Route path="/admin/scenarios"  element={<ScenariosPage />} />
           </Route>
 
-          {/* Super-admin only — stub landing (full superadmin UI is follow-up) */}
+          {/* Super-admin-only routes */}
           <Route element={<RequireAuth roles={['super_admin']} />}>
-            <Route path="/superadmin" element={<Navigate to="/admin/calls" replace />} />
+            <Route path="/superadmin"            element={<SuperAdminDashboard />} />
+            <Route path="/superadmin/users"      element={<SuperAdminUsers />} />
+            <Route path="/superadmin/cost_rates" element={<SuperAdminCostRates />} />
+            <Route path="/superadmin/plans"      element={<SuperAdminPlans />} />
           </Route>
         </Route>
 

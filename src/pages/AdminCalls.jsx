@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   Search, Phone, Clock, RefreshCw, Loader2,
-  Users, BarChart3, ChevronRight, X, Upload,
+  Users, BarChart3, ChevronRight, X, Upload, Trash2,
 } from 'lucide-react'
 
 import { apiFetch } from '@/lib/api'
@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import OutcomeBadge from '@/components/OutcomeBadge'
+import { useAuth } from '@/contexts/AuthContext'
 
 function fmtDur(s) {
   if (s == null) return '—'
@@ -35,7 +36,10 @@ const OUTCOME_FILTERS = [
 ]
 
 export default function AdminCalls() {
-  const [calls,    setCalls]   = useState([])
+  const { role } = useAuth()
+  const isSuper  = role === 'super_admin'
+  const [calls,      setCalls]      = useState([])
+  const [deletingId, setDeletingId] = useState(null)
   const [loading,  setLoad]    = useState(true)
   const [err,      setErr]     = useState(null)
   const [q,        setQ]       = useState('')
@@ -53,6 +57,21 @@ export default function AdminCalls() {
     }
   }
   useEffect(() => { load() }, [])
+
+  async function handleDelete(c, e) {
+    e.preventDefault(); e.stopPropagation()
+    const who = c.users?.name || c.users?.phone || c.id.slice(0, 8)
+    if (!confirm(`Delete call with ${who}? Recording + transcript will be permanently removed.`)) return
+    setDeletingId(c.id)
+    try {
+      await apiFetch(`/admin/calls/${c.id}`, { method: 'DELETE' })
+      setCalls(list => list.filter(x => x.id !== c.id))
+    } catch (err) {
+      alert(err?.body?.detail || err?.message || 'Failed to delete')
+    } finally {
+      setDeletingId(null)
+    }
+  }
 
   const stats = useMemo(() => {
     const total = calls.length
@@ -198,8 +217,13 @@ export default function AdminCalls() {
                             <span className="uppercase">{c.language_initial || '—'}</span>
                             {c.audio_mode    && <><span>·</span><span>{c.audio_mode}</span></>}
                             {c.recording_url && <><span>·</span><span className="text-emerald-500">recording</span></>}
-                            {c.total_cost_inr != null && (
-                              <><span>·</span><span>Rs {Number(c.total_cost_inr).toFixed(2)}</span></>
+                            {isSuper && c.total_cost_inr != null && (
+                              <><span>·</span><span title="Cost (we pay)">Cost ₹{Number(c.total_cost_inr).toFixed(2)}</span></>
+                            )}
+                            {c.total_sell_inr != null && (
+                              <><span>·</span><span title="Selling (client pays)" className="text-[var(--color-accent)]">
+                                {isSuper ? 'Sell' : 'Spent'} ₹{Number(c.total_sell_inr).toFixed(2)}
+                              </span></>
                             )}
                           </div>
                         </div>
@@ -207,6 +231,18 @@ export default function AdminCalls() {
                           {js.outcome   && <OutcomeBadge value={js.outcome}   kind="outcome" />}
                           {js.sentiment && <OutcomeBadge value={js.sentiment} kind="sentiment" />}
                         </div>
+                        {isSuper && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDelete(c, e)}
+                            disabled={deletingId === c.id}
+                            aria-label="Delete call"
+                            title="Delete call"
+                            className="flex-shrink-0 mt-1 size-8 rounded-md flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-colors"
+                          >
+                            {deletingId === c.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />}
+                          </button>
+                        )}
                         <ChevronRight className="size-5 text-[var(--color-fg-subtle)] group-hover:text-[var(--color-accent)] group-hover:translate-x-0.5 transition flex-shrink-0 mt-1" />
                       </div>
                     </CardContent>
