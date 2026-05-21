@@ -7,9 +7,7 @@ export const COMPANY = {
 }
 
 // Public site nav (anonymous visitors)
-export const NAV_LINKS = [
-  { label: 'Pricing', to: '/pricing' },
-]
+export const NAV_LINKS = []
 
 // Client admin nav — visible after login when role=client_admin
 export const CLIENT_NAV_LINKS = [
