@@ -15,7 +15,6 @@ const HERO_PHRASES = [
   'real-time voice agents.',
   'multilingual conversations.',
   'outbound sales at scale.',
-  'Indian languages, fluent.',
   'sub-second response times.',
 ]
 
