@@ -107,10 +107,10 @@ export default function SingleCallForm() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="sc-email">Email (optional)</Label>
+                <Label htmlFor="sc-email">Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--color-fg-subtle)]" />
-                  <Input id="sc-email" type="email" placeholder="customer@example.com" value={email} onChange={e => setEmail(e.target.value)} className="pl-10" />
+                  <Input id="sc-email" type="email" placeholder="customer@example.com" value={email} onChange={e => setEmail(e.target.value)} required className="pl-10" />
                 </div>
               </div>
             </div>

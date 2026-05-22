@@ -14,12 +14,12 @@ export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(() => tokenStore.user)
   const [loading, setLoading] = useState(false)
 
-  // Re-verify session on mount — if access token is stale, /auth/me triggers refresh
+  // Re-verify session on mount — /auth/me succeeds if httpOnly access cookie
+  // is valid; else apiFetch transparently calls /auth/refresh (cookie-based).
   useEffect(() => {
-    if (!tokenStore.access) return
     let cancelled = false
     apiFetch('/auth/me')
-      .then(me => { if (!cancelled) setUser(me) })
+      .then(me => { if (!cancelled) { setUser(me); tokenStore.save({ user: me }) } })
       .catch(() => { if (!cancelled) { tokenStore.clear(); setUser(null) } })
     return () => { cancelled = true }
   }, [])
@@ -28,11 +28,9 @@ export function AuthProvider({ children }) {
     setLoading(true)
     try {
       const data = await apiFetch('/auth/login', { method: 'POST', body: { email, password }, skipAuth: true })
-      tokenStore.save({
-        access_token:  data.access_token,
-        refresh_token: data.refresh_token,
-        user:          data.user,
-      })
+      // Server sets httpOnly cookies in Set-Cookie. We only persist the user
+      // object so the SPA renders without a flicker on next reload.
+      tokenStore.save({ user: data.user })
       setUser(data.user)
       return data.user
     } finally {
@@ -42,9 +40,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback(async () => {
     try {
-      if (tokenStore.refresh) {
-        await apiFetch('/auth/logout', { method: 'POST', body: { refresh_token: tokenStore.refresh }, skipAuth: true })
-      }
+      await apiFetch('/auth/logout', { method: 'POST', body: {}, skipAuth: true })
     } catch { /* server may be down; clear local state regardless */ }
     tokenStore.clear()
     setUser(null)
