@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { apiFetch } from '@/lib/api'
+import { useAuth } from '@/contexts/AuthContext'
 
 /**
  * Modal for client_admin / super_admin to create a new PRIVATE scenario.
@@ -18,6 +19,8 @@ import { apiFetch } from '@/lib/api'
  *   onCreated(newScenario)   : called with response { id, is_private, org_id }
  */
 export default function ScenarioCreateDialog({ open, onOpenChange, onCreated }) {
+  const { role } = useAuth()
+  const isSuper = role === 'super_admin'
   const [title,   setTitle]   = useState('')
   const [summary, setSummary] = useState('')
   const [body,    setBody]    = useState('')
@@ -33,14 +36,14 @@ export default function ScenarioCreateDialog({ open, onOpenChange, onCreated }) 
     e.preventDefault()
     setError(null); setPending(true)
     try {
-      const created = await apiFetch('/admin/scenarios', {
-        method: 'POST',
-        body: {
-          title:   title.trim(),
-          summary: summary.trim() || null,
-          body:    body.trim(),
-        },
-      })
+      // super_admin → /superadmin/scenarios (creates PUBLIC by default, cross-org).
+      // client_admin → /admin/scenarios (creates PRIVATE scoped to their org).
+      const endpoint = isSuper ? '/superadmin/scenarios' : '/admin/scenarios'
+      const payload = isSuper
+        ? { title: title.trim(), summary: summary.trim() || null, body: body.trim(),
+            is_private: false, org_id: null }
+        : { title: title.trim(), summary: summary.trim() || null, body: body.trim() }
+      const created = await apiFetch(endpoint, { method: 'POST', body: payload })
       onCreated?.({ ...created, title: title.trim(), summary: summary.trim() || null })
       reset()
       onOpenChange(false)

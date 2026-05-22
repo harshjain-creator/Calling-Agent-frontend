@@ -3,7 +3,6 @@ export const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8002'
 export const COMPANY = {
   name: 'Fristine Infotech',
   tagline: 'Voice AI for the next generation of enterprise.',
-  contactEmail: 'hello@fristineinfotech.com',
 }
 
 // Public site nav (anonymous visitors)

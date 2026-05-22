@@ -93,12 +93,6 @@ export default function LoginModal({ open, onOpenChange }) {
             {loading ? <><Loader2 className="size-4 animate-spin" /> Signing in…</> : 'Sign in'}
           </Button>
 
-          <div className="text-center text-xs text-[var(--color-fg-subtle)] pt-1">
-            No account? Contact{' '}
-            <a href="mailto:hello@fristineinfotech.com" className="text-[var(--color-accent)] hover:underline">
-              hello@fristineinfotech.com
-            </a>
-          </div>
         </form>
       </DialogContent>
     </Dialog>
