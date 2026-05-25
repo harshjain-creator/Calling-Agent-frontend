@@ -31,6 +31,7 @@ export default function DemoCallForm({ onSuccess } = {}) {
   const [name,      setName]      = useState('')
   const [email,     setEmail]     = useState('')
   const [phone,     setPhone]     = useState('')
+  const [gender,    setGender]    = useState('male')
   const [scenarioId, setScenarioId] = useState('')   // either a real id OR CUSTOM sentinel
   const [customText, setCustomText] = useState('')
   const [remaining, setRemaining] = useState(null)
@@ -62,6 +63,7 @@ export default function DemoCallForm({ onSuccess } = {}) {
         name:         name.trim(),
         email:        email.trim(),
         phone_number: phone.trim(),
+        gender,
       }
       if (isCustom) body.scenario    = customText.trim()
       else          body.scenario_id = scenarioId
@@ -128,6 +130,31 @@ export default function DemoCallForm({ onSuccess } = {}) {
         <div className="relative">
           <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--color-fg-subtle)]" />
           <Input id="dm-phone" type="tel" placeholder="+91 98765 43210" value={phone} onChange={e => setPhone(e.target.value)} required className="pl-10" />
+        </div>
+      </div>
+
+      {/* Agent gender */}
+      <div className="space-y-2">
+        <Label>Agent voice</Label>
+        <div className="flex gap-2">
+          <button type="button"
+            onClick={() => setGender('male')}
+            className={`flex-1 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
+              gender === 'male'
+                ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
+                : 'border-[var(--color-border)] text-[var(--color-fg-muted)] hover:border-[var(--color-fg-subtle)]'
+            }`}>
+            Male (Rahul)
+          </button>
+          <button type="button"
+            onClick={() => setGender('female')}
+            className={`flex-1 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
+              gender === 'female'
+                ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
+                : 'border-[var(--color-border)] text-[var(--color-fg-muted)] hover:border-[var(--color-fg-subtle)]'
+            }`}>
+            Female (Riya)
+          </button>
         </div>
       </div>
 

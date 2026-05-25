@@ -5,7 +5,9 @@ import { ArrowLeft, Loader2, Mail, Phone, User as UserIcon, Calendar, Hash, Tras
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { SkeletonCard } from '@/components/ui/skeleton'
 import { useAuth } from '@/contexts/AuthContext'
+import { confirm as swalConfirm, toast, alertError } from '@/lib/swal'
 import { IndianRupee } from 'lucide-react'
 import AudioPlayer    from '@/components/AudioPlayer'
 import TranscriptView from '@/components/TranscriptView'
@@ -45,8 +47,10 @@ export default function AdminCallDetail() {
 
   if (loading) {
     return (
-      <div className="w-full px-4 sm:px-6 py-24 flex items-center justify-center">
-        <Loader2 className="size-6 animate-spin text-[var(--color-fg-muted)]" />
+      <div className="w-full px-4 sm:px-6 py-8 space-y-4">
+        <SkeletonCard />
+        <SkeletonCard />
+        <SkeletonCard />
       </div>
     )
   }
@@ -95,13 +99,19 @@ export default function AdminCallDetail() {
               variant="outline" size="sm"
               disabled={deleting}
               onClick={async () => {
-                if (!confirm('Delete this call permanently? Recording + transcript will be removed.')) return
+                const ok = await swalConfirm({
+                  title: 'Delete call?',
+                  text:  'Recording + transcript will be permanently removed.',
+                  confirmText: 'Delete', danger: true,
+                })
+                if (!ok) return
                 setDeleting(true)
                 try {
                   await apiFetch(`/admin/calls/${call.id}`, { method: 'DELETE' })
+                  toast({ icon: 'success', text: 'Call deleted' })
                   navigate('/admin/calls')
                 } catch (e) {
-                  alert(e?.body?.detail || e?.message || 'Failed to delete')
+                  await alertError(e?.body?.detail || e?.message || 'Failed to delete')
                 } finally {
                   setDeleting(false)
                 }
@@ -141,11 +151,18 @@ export default function AdminCallDetail() {
         src={call.recording_url}
         filename={`call-${(call.call_sid || call.id || 'recording').slice(0, 32)}.wav`}
         onDelete={isSuper ? async () => {
+          const ok = await swalConfirm({
+            title: 'Delete recording?',
+            text:  'Audio file will be removed from storage. Transcript stays.',
+            confirmText: 'Delete', danger: true,
+          })
+          if (!ok) return
           try {
             await apiFetch(`/admin/calls/${call.id}/recording`, { method: 'DELETE' })
             setData(prev => prev && { ...prev, call: { ...prev.call, recording_url: null } })
+            toast({ icon: 'success', text: 'Recording deleted' })
           } catch (e) {
-            alert(e?.body?.detail || e?.message || 'Failed to delete recording')
+            await alertError(e?.body?.detail || e?.message || 'Failed to delete recording')
           }
         } : undefined}
       />

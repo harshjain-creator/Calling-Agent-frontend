@@ -10,8 +10,10 @@ import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
+import { SkeletonTable } from '@/components/ui/skeleton'
 import OutcomeBadge from '@/components/OutcomeBadge'
 import { useAuth } from '@/contexts/AuthContext'
+import { confirm as swalConfirm, toast, alertError } from '@/lib/swal'
 
 function fmtDur(s) {
   if (s == null) return '—'
@@ -44,6 +46,7 @@ export default function AdminCalls() {
   const [err,      setErr]     = useState(null)
   const [q,        setQ]       = useState('')
   const [outcomeFilter, setOutcomeFilter] = useState(null)
+  const [directionFilter, setDirectionFilter] = useState('all')  // 'all' | 'inbound' | 'outbound'
 
   const load = async () => {
     setLoad(true); setErr(null)
@@ -61,13 +64,19 @@ export default function AdminCalls() {
   async function handleDelete(c, e) {
     e.preventDefault(); e.stopPropagation()
     const who = c.users?.name || c.users?.phone || c.id.slice(0, 8)
-    if (!confirm(`Delete call with ${who}? Recording + transcript will be permanently removed.`)) return
+    const ok = await swalConfirm({
+      title: 'Delete call?',
+      text:  `Call with ${who}: recording + transcript will be permanently removed.`,
+      confirmText: 'Delete', danger: true,
+    })
+    if (!ok) return
     setDeletingId(c.id)
     try {
       await apiFetch(`/admin/calls/${c.id}`, { method: 'DELETE' })
       setCalls(list => list.filter(x => x.id !== c.id))
+      toast({ icon: 'success', text: 'Call deleted' })
     } catch (err) {
-      alert(err?.body?.detail || err?.message || 'Failed to delete')
+      await alertError(err?.body?.detail || err?.message || 'Failed to delete')
     } finally {
       setDeletingId(null)
     }
@@ -85,6 +94,8 @@ export default function AdminCalls() {
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase()
     return calls.filter(c => {
+      if (directionFilter === 'inbound'  && !c.is_inbound) return false
+      if (directionFilter === 'outbound' &&  c.is_inbound) return false
       if (outcomeFilter && c.summary_json?.outcome !== outcomeFilter) return false
       if (!t) return true
       const u = c.users || {}
@@ -97,7 +108,13 @@ export default function AdminCalls() {
         (c.call_sid || '').toLowerCase().includes(t)
       )
     })
-  }, [calls, q, outcomeFilter])
+  }, [calls, q, outcomeFilter, directionFilter])
+
+  const dirCounts = useMemo(() => ({
+    all:      calls.length,
+    inbound:  calls.filter(c => c.is_inbound).length,
+    outbound: calls.filter(c => !c.is_inbound).length,
+  }), [calls])
 
   return (
     <div className="w-full px-4 sm:px-6 py-8 space-y-6">
@@ -148,6 +165,27 @@ export default function AdminCalls() {
         </CardContent>
       </Card>
 
+      {/* Direction tabs */}
+      <div className="flex gap-1 border-b border-[var(--color-border)]">
+        {[
+          { key: 'all',      label: 'All' },
+          { key: 'inbound',  label: 'Inbound' },
+          { key: 'outbound', label: 'Outbound' },
+        ].map(t => (
+          <button key={t.key}
+            onClick={() => setDirectionFilter(t.key)}
+            className={`px-4 py-2 text-sm font-medium relative -mb-px border-b-2 transition-colors ${
+              directionFilter === t.key
+                ? 'border-[var(--color-accent)] text-[var(--color-accent)]'
+                : 'border-transparent text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
+            }`}
+          >
+            {t.label}
+            <span className="ml-2 text-xs text-[var(--color-fg-subtle)]">({dirCounts[t.key]})</span>
+          </button>
+        ))}
+      </div>
+
       {/* Outcome filter chips */}
       <div className="flex flex-wrap gap-2">
         <FilterChip active={outcomeFilter === null} onClick={() => setOutcomeFilter(null)}>All</FilterChip>
@@ -163,11 +201,7 @@ export default function AdminCalls() {
       </div>
 
       {/* List */}
-      {loading && (
-        <div className="flex items-center justify-center py-20 text-[var(--color-fg-muted)]">
-          <Loader2 className="size-5 animate-spin mr-3" /> Loading calls…
-        </div>
-      )}
+      {loading && <SkeletonTable rows={6} cols={5} />}
       {err && !loading && (
         <Card className="border-red-500/40 bg-red-500/10">
           <CardContent className="pt-6 text-red-500 text-sm">Error: {err}</CardContent>

@@ -22,6 +22,7 @@ export const SUPER_NAV_LINKS = [
   { label: 'All Calls',  to: '/admin/calls' },
   { label: 'Call',       to: '/call' },             // Single + Bulk in one tab
   { label: 'Scenarios',  to: '/admin/scenarios' },
+  { label: 'Inbound',    to: '/superadmin/inbound' },
   { label: 'Plans',      to: '/superadmin/plans' },
   { label: 'Users',      to: '/superadmin/users' },
   { label: 'Cost Rates', to: '/superadmin/cost_rates' },

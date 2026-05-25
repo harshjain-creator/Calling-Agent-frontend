@@ -5,7 +5,10 @@ import { RefreshCw, Loader2, Save, IndianRupee } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
+import { SkeletonList } from '@/components/ui/skeleton'
 import { apiFetch } from '@/lib/api'
+import { toast, alertError } from '@/lib/swal'
 
 const UNITS = ['minute', 'char', 'token_1k']
 
@@ -45,8 +48,9 @@ export default function SuperAdminCostRates() {
         body: { unit: d.unit, rate_inr: Number(d.rate_inr) },
       })
       await load()
+      toast({ icon: 'success', text: `${module} updated` })
     } catch (e) {
-      alert(e?.body?.detail || 'Failed to save')
+      await alertError(e?.body?.detail || 'Failed to save')
     } finally {
       setSavingMod(null)
     }
@@ -77,11 +81,7 @@ export default function SuperAdminCostRates() {
         </Card>
       )}
 
-      {loading && !rates.length && (
-        <div className="flex items-center justify-center py-16 text-[var(--color-fg-muted)]">
-          <Loader2 className="size-5 animate-spin mr-3" /> Loading…
-        </div>
-      )}
+      {loading && !rates.length && <SkeletonList count={5} />}
 
       {!loading && rates.length > 0 && (
         <Card>
@@ -111,12 +111,11 @@ export default function SuperAdminCostRates() {
                     >
                       <td className="px-4 py-3 font-medium">{r.module}</td>
                       <td className="px-4 py-3">
-                        <select
+                        <Select
                           value={d.unit} onChange={e => set(r.module, 'unit', e.target.value)}
-                          className="h-9 rounded-lg border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] px-2 text-sm"
                         >
                           {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                        </select>
+                        </Select>
                       </td>
                       <td className="px-4 py-3">
                         <RupeeInput value={d.rate_inr} onChange={v => set(r.module, 'rate_inr', v)} />

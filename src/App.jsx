@@ -22,6 +22,7 @@ import SuperAdminDashboard  from '@/pages/SuperAdminDashboard'
 import SuperAdminUsers      from '@/pages/SuperAdminUsers'
 import SuperAdminCostRates  from '@/pages/SuperAdminCostRates'
 import SuperAdminPlans      from '@/pages/SuperAdminPlans'
+import SuperAdminInbound    from '@/pages/SuperAdminInbound'
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
             <Route path="/superadmin/users"      element={<SuperAdminUsers />} />
             <Route path="/superadmin/cost_rates" element={<SuperAdminCostRates />} />
             <Route path="/superadmin/plans"      element={<SuperAdminPlans />} />
+            <Route path="/superadmin/inbound"    element={<SuperAdminInbound />} />
           </Route>
         </Route>
 

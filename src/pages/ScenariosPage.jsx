@@ -4,10 +4,12 @@ import { Plus, Lock, Globe2, Trash2, Loader2, AlertCircle, FileText, RefreshCw }
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SkeletonList } from '@/components/ui/skeleton'
 import { apiFetch } from '@/lib/api'
 import { useScenarios } from '@/hooks/useScenarios'
 import { useAuth } from '@/contexts/AuthContext'
 import ScenarioCreateDialog from '@/components/ScenarioCreateDialog'
+import { confirm as swalConfirm, toast, alertError } from '@/lib/swal'
 
 /**
  * /admin/scenarios — scenario management.
@@ -28,7 +30,13 @@ export default function ScenariosPage() {
   const [deleteErr,  setDeleteErr]  = useState(null)
 
   async function handleDelete(s) {
-    if (!confirm(`Delete scenario "${s.title}"? This cannot be undone.`)) return
+    const ok = await swalConfirm({
+      title: 'Delete scenario?',
+      text:  `"${s.title}" will be permanently removed. This cannot be undone.`,
+      confirmText: 'Delete',
+      danger: true,
+    })
+    if (!ok) return
     setDeletingId(s.id); setDeleteErr(null)
     try {
       const path = isSuper && !s.is_private
@@ -36,8 +44,11 @@ export default function ScenariosPage() {
         : `/admin/scenarios/${s.id}`
       await apiFetch(path, { method: 'DELETE' })
       await reload()
+      toast({ icon: 'success', text: 'Scenario deleted' })
     } catch (err) {
-      setDeleteErr(err?.body?.detail || err?.message || 'Failed to delete')
+      const msg = err?.body?.detail || err?.message || 'Failed to delete'
+      setDeleteErr(msg)
+      await alertError(msg)
     } finally {
       setDeletingId(null)
     }
@@ -82,11 +93,7 @@ export default function ScenariosPage() {
       )}
 
       {/* List */}
-      {loading && (
-        <div className="flex items-center justify-center py-16 text-[var(--color-fg-muted)]">
-          <Loader2 className="size-5 animate-spin mr-3" /> Loading…
-        </div>
-      )}
+      {loading && <SkeletonList count={4} />}
       {error && !loading && (
         <Card className="border-red-500/40 bg-red-500/10">
           <CardContent className="pt-6 text-red-500 text-sm">{String(error)}</CardContent>

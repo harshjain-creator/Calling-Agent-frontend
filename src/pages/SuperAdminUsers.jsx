@@ -10,7 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Select } from '@/components/ui/select'
+import { SkeletonTable } from '@/components/ui/skeleton'
 import { apiFetch } from '@/lib/api'
+import { confirm as swalConfirm, toast, alertError } from '@/lib/swal'
 
 export default function SuperAdminUsers() {
   const [users, setUsers] = useState([])
@@ -41,13 +44,19 @@ export default function SuperAdminUsers() {
   const orgMap = Object.fromEntries(orgs.map(o => [o.id, o.name]))
 
   async function handleDelete(u) {
-    if (!confirm(`Delete user ${u.email}? Active refresh tokens are revoked.`)) return
+    const ok = await swalConfirm({
+      title: 'Delete user?',
+      text:  `User ${u.email} will be removed and active refresh tokens revoked.`,
+      confirmText: 'Delete', danger: true,
+    })
+    if (!ok) return
     setDeletingId(u.id)
     try {
       await apiFetch(`/superadmin/users/${u.id}`, { method: 'DELETE' })
       await load()
+      toast({ icon: 'success', text: 'User deleted' })
     } catch (e) {
-      alert(e?.body?.detail || 'Failed to delete')
+      await alertError(e?.body?.detail || 'Failed to delete')
     } finally {
       setDeletingId(null)
     }
@@ -81,7 +90,8 @@ export default function SuperAdminUsers() {
         </Card>
       )}
 
-      {loading && !users.length && (
+      {loading && !users.length && <SkeletonTable rows={5} cols={4} />}
+      {false && (
         <div className="flex items-center justify-center py-16 text-[var(--color-fg-muted)]">
           <Loader2 className="size-5 animate-spin mr-3" /> Loading…
         </div>
@@ -236,24 +246,24 @@ function AssignPlanDialog({ open, onOpenChange, org, onAssigned }) {
         <form onSubmit={submit} className="space-y-4 mt-2">
           <div className="space-y-1.5">
             <Label>Plan</Label>
-            <select value={planId} onChange={e => setPlanId(e.target.value)} required
+            <Select value={planId} onChange={e => setPlanId(e.target.value)} required
               className="w-full h-11 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] px-3 text-sm">
               {plans.map(p => (
                 <option key={p.id} value={p.id}>
                   {p.name} — ₹{Number(p.rate_per_min_inr).toFixed(2)}/min · {p.calls_per_day ?? '∞'}/day
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Duration (months)</Label>
-            <select value={months} onChange={e => setMonths(Number(e.target.value))}
+            <Select value={months} onChange={e => setMonths(Number(e.target.value))}
               className="w-full h-11 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] px-3 text-sm">
               <option value={1}>1 month</option>
               <option value={3}>3 months</option>
               <option value={6}>6 months</option>
               <option value={12}>12 months</option>
-            </select>
+            </Select>
           </div>
           {err && (
             <div className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2.5 text-sm text-red-500">
@@ -317,20 +327,20 @@ function CreateUserDialog({ open, onOpenChange, orgs, onCreated }) {
           <div className="space-y-1.5"><Label>Full name</Label><Input value={fullName} onChange={e => setFullName(e.target.value)} /></div>
           <div className="space-y-1.5">
             <Label>Role</Label>
-            <select value={role} onChange={e => setRole(e.target.value)}
+            <Select value={role} onChange={e => setRole(e.target.value)}
               className="w-full h-11 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] px-3 text-sm">
               <option value="client_admin">client_admin</option>
               <option value="super_admin">super_admin</option>
-            </select>
+            </Select>
           </div>
           {role === 'client_admin' && (
             <div className="space-y-1.5">
               <Label>Org</Label>
-              <select required value={orgId} onChange={e => setOrgId(e.target.value)}
+              <Select required value={orgId} onChange={e => setOrgId(e.target.value)}
                 className="w-full h-11 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] px-3 text-sm">
                 <option value="">Select org…</option>
                 {orgs.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-              </select>
+              </Select>
             </div>
           )}
           {err && (

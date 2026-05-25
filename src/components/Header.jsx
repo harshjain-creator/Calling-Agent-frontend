@@ -8,6 +8,7 @@ import ThemeToggle from '@/components/ThemeToggle'
 import LoginModal from '@/components/LoginModal'
 import { useAuth } from '@/contexts/AuthContext'
 import { COMPANY, NAV_LINKS, CLIENT_NAV_LINKS, SUPER_NAV_LINKS } from '@/config'
+import { confirm as swalConfirm, toast } from '@/lib/swal'
 
 function NavItem({ to, children }) {
   return (
@@ -54,7 +55,14 @@ export default function Header() {
   }
 
   async function handleLogout() {
+    const ok = await swalConfirm({
+      title: 'Log out?',
+      text:  'Your session will end. You can sign in again any time.',
+      confirmText: 'Log out',
+    })
+    if (!ok) return
     await logout()
+    toast({ icon: 'success', text: 'Logged out' })
     navigate('/')
   }
 

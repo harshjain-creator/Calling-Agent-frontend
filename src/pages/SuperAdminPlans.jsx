@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { SkeletonList } from '@/components/ui/skeleton'
 import { apiFetch } from '@/lib/api'
+import { toast, alertError } from '@/lib/swal'
 
 /**
  * /superadmin/plans — manage subscription plans.
@@ -68,8 +70,9 @@ export default function SuperAdminPlans() {
         },
       })
       await load()
+      toast({ icon: 'success', text: 'Plan saved' })
     } catch (e) {
-      alert(e?.body?.detail || 'Failed to save')
+      await alertError(e?.body?.detail || 'Failed to save')
     } finally {
       setSavingId(null)
     }
@@ -100,11 +103,7 @@ export default function SuperAdminPlans() {
         </Card>
       )}
 
-      {loading && !plans.length && (
-        <div className="flex items-center justify-center py-16 text-[var(--color-fg-muted)]">
-          <Loader2 className="size-5 animate-spin mr-3" /> Loading…
-        </div>
-      )}
+      {loading && !plans.length && <SkeletonList count={4} />}
 
       {!loading && plans.length > 0 && (
         <Card>

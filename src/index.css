@@ -143,3 +143,79 @@ html[data-theme="dark"] { color-scheme: dark; }
 @media (prefers-reduced-motion: reduce) {
   .neural-substrate { display: none; }
 }
+
+/* -------------------------------------------------------------------------
+   SweetAlert2 — themed to design tokens.
+   ------------------------------------------------------------------------ */
+.swal-popup {
+  background: var(--color-bg-elevated) !important;
+  color: var(--color-fg) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 14px !important;
+  font-family: var(--font-sans) !important;
+  box-shadow: 0 24px 60px -20px rgba(0,0,0,0.35) !important;
+}
+.swal-title { color: var(--color-fg) !important; font-weight: 600 !important; }
+.swal-text  { color: var(--color-fg-muted) !important; font-size: 14px !important; }
+.swal-actions { gap: 8px !important; }
+.swal-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 8px 18px; border-radius: 8px;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+.swal-btn-primary {
+  background: var(--color-accent); color: white;
+}
+.swal-btn-primary:hover { background: var(--color-accent-strong); }
+.swal-btn-danger {
+  background: #dc2626; color: white;
+}
+.swal-btn-danger:hover { background: #b91c1c; }
+.swal-btn-ghost {
+  background: transparent; color: var(--color-fg-muted);
+  border-color: var(--color-border);
+}
+.swal-btn-ghost:hover {
+  background: var(--color-bg-muted); color: var(--color-fg);
+}
+.swal-toast { padding: 0.75rem 1rem !important; }
+
+/* -------------------------------------------------------------------------
+   Skeleton shimmer for loading states.
+   ------------------------------------------------------------------------ */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-bg-muted) 0%,
+    var(--color-border) 50%,
+    var(--color-bg-muted) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-pulse {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* -------------------------------------------------------------------------
+   Select <option> theming. Limited by OS-native dropdown, but Chrome/Edge/
+   Firefox/Opera on Win+Linux respect background + color + padding.
+   Safari/macOS native UI ignores most of this — falls back gracefully.
+   ------------------------------------------------------------------------ */
+select option {
+  background-color: var(--color-bg-elevated);
+  color: var(--color-fg);
+  padding: 8px 12px;
+}
+select option:checked,
+select option:hover,
+select option:focus {
+  background-color: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+select option:disabled {
+  color: var(--color-fg-subtle);
+}

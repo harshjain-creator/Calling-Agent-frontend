@@ -8,6 +8,7 @@ import {
 import { apiFetch } from '@/lib/api'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Select } from '@/components/ui/select'
 import { useScenarios } from '@/hooks/useScenarios'
 import ScenarioCreateDialog from '@/components/ScenarioCreateDialog'
 
@@ -79,6 +80,7 @@ export default function BulkCall({ embedded = false } = {}) {
   const [defaultScenarioId, setDefaultScenarioId] = useState('')
   const [delayMs,   setDelayMs]   = useState(4000)
   const [maxConcur, setMaxConcur] = useState(3)
+  const [gender,    setGender]    = useState('male')
   const [submitting, setSubmitting] = useState(false)
   const [runId,    setRunId]    = useState(null)
   const [progress, setProgress] = useState(null)
@@ -137,6 +139,7 @@ export default function BulkCall({ embedded = false } = {}) {
         default_scenario_id: defaultScenarioId,
         delay_ms: delayMs,
         max_concurrent: maxConcur,
+        gender,
       }
       if (!payload.rows.length) throw new Error('No valid rows to dial')
       if (!defaultScenarioId)  throw new Error('Pick a default scenario first')
@@ -294,17 +297,16 @@ export default function BulkCall({ embedded = false } = {}) {
               </div>
             ) : (
               <>
-                <select
+                <Select
                   value={defaultScenarioId}
                   onChange={e => setDefaultScenarioId(e.target.value)}
-                  className="w-full h-11 rounded-xl border border-[var(--color-border-strong)] bg-[var(--color-bg-elevated)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
                 >
                   {scenarios.map(s => (
                     <option key={s.id} value={s.id}>
                       {s.is_private ? '🔒 ' : ''}{s.title}
                     </option>
                   ))}
-                </select>
+                </Select>
                 {selectedScenario?.summary && (
                   <p className="text-xs text-[var(--color-fg-muted)] mt-2 leading-relaxed">
                     {selectedScenario.is_private && <Lock className="inline size-3 text-[var(--color-accent)] mr-1 align-[-2px]" />}
@@ -337,6 +339,29 @@ export default function BulkCall({ embedded = false } = {}) {
                 onChange={e => setMaxConcur(Number(e.target.value))}
                 className="w-full accent-[var(--color-accent)]"
               />
+            </div>
+          </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-2">Agent voice</label>
+            <div className="flex gap-2">
+              <button type="button"
+                onClick={() => setGender('male')}
+                className={`flex-1 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
+                  gender === 'male'
+                    ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
+                    : 'border-[var(--color-border)] text-[var(--color-fg-muted)] hover:border-[var(--color-fg-subtle)]'
+                }`}>
+                Male (Rahul)
+              </button>
+              <button type="button"
+                onClick={() => setGender('female')}
+                className={`flex-1 rounded-lg border px-4 py-2.5 text-sm transition-colors ${
+                  gender === 'female'
+                    ? 'border-[var(--color-accent)] bg-[var(--color-accent-soft)] text-[var(--color-accent)]'
+                    : 'border-[var(--color-border)] text-[var(--color-fg-muted)] hover:border-[var(--color-fg-subtle)]'
+                }`}>
+                Female (Riya)
+              </button>
             </div>
           </div>
         </CardContent>

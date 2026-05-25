@@ -8,6 +8,7 @@ import {
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { SkeletonCard, SkeletonList, SkeletonLine } from '@/components/ui/skeleton'
 import { apiFetch } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -67,15 +68,26 @@ export default function ClientDashboard() {
       </div>
 
       {/* Subscription card */}
-      <SubscriptionCard sub={sub} />
+      {loading && !sub ? <SkeletonCard /> : <SubscriptionCard sub={sub} />}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat label="Total Calls" value={totalCalls}            icon={PhoneCall} />
-        <Stat label="Total Time"  value={fmtDur(totalDur)}      icon={Clock} />
-        <Stat label="Interested"  value={interested}            icon={PhoneCall} />
-        <Stat label="Total Spent" value={INR(totalSpent)}       icon={IndianRupee} highlight />
-      </div>
+      {loading && calls.length === 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[0,1,2,3].map(i => (
+            <Card key={i}><CardContent className="p-5 space-y-3">
+              <SkeletonLine width="50%" height={12} />
+              <SkeletonLine width="80%" height={28} />
+            </CardContent></Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Stat label="Total Calls" value={totalCalls}            icon={PhoneCall} />
+          <Stat label="Total Time"  value={fmtDur(totalDur)}      icon={Clock} />
+          <Stat label="Interested"  value={interested}            icon={PhoneCall} />
+          <Stat label="Total Spent" value={INR(totalSpent)}       icon={IndianRupee} highlight />
+        </div>
+      )}
 
       {err && (
         <Card className="border-red-500/40 bg-red-500/10">
@@ -105,11 +117,7 @@ export default function ClientDashboard() {
       {/* Recent calls */}
       <div>
         <h2 className="font-display text-xl font-semibold mb-3">Recent Calls</h2>
-        {loading && (
-          <div className="flex items-center justify-center py-10 text-[var(--color-fg-muted)]">
-            <Loader2 className="size-5 animate-spin mr-3" /> Loading…
-          </div>
-        )}
+        {loading && <SkeletonList count={4} />}
         {!loading && calls.length === 0 && (
           <Card>
             <CardContent className="py-10 text-center text-[var(--color-fg-muted)] text-sm">
