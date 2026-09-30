@@ -57,12 +57,18 @@ export default function DemoCallForm({ onSuccess } = {}) {
       setError({ message: 'Write your scenario or pick a preset' })
       return
     }
+    // Country code is mandatory — it decides which number (India vs US) dials the call.
+    const normalizedPhone = phone.trim().replace(/[\s()-]/g, '')
+    if (!/^\+\d{7,15}$/.test(normalizedPhone)) {
+      setError({ message: 'Enter the phone number with country code, e.g. +91 98765 43210 or +971 50 123 4567' })
+      return
+    }
     setPending(true); setError(null); setSuccess(false)
     try {
       const body = {
         name:         name.trim(),
         email:        email.trim(),
-        phone_number: phone.trim(),
+        phone_number: normalizedPhone,
         gender,
       }
       if (isCustom) body.scenario    = customText.trim()
@@ -131,6 +137,9 @@ export default function DemoCallForm({ onSuccess } = {}) {
           <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 size-4 text-[var(--color-fg-subtle)]" />
           <Input id="dm-phone" type="tel" placeholder="+91 98765 43210" value={phone} onChange={e => setPhone(e.target.value)} required className="pl-10" />
         </div>
+        <p className="text-xs text-[var(--color-fg-subtle)]">
+          Include the country code (e.g. <span className="font-medium">+91</span> India, <span className="font-medium">+971</span> UAE) — it selects the right dialing number.
+        </p>
       </div>
 
       {/* Agent gender */}
