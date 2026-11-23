@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { LogIn, LogOut, User2 } from 'lucide-react'
+import { LogIn, LogOut, User2, Headphones } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 import { Button } from '@/components/ui/button'
@@ -86,6 +86,18 @@ export default function Header() {
 
           {/* Right actions */}
           <div className="flex items-center gap-2">
+            {/* Center nav is hidden on mobile — keep the public Demos tab reachable */}
+            {!isAuthed && (
+              <NavLink
+                to="/demos"
+                className={({ isActive }) =>
+                  `md:hidden inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium ${
+                    isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-fg-muted)]'
+                  }`}
+              >
+                <Headphones className="size-4" /> Demos
+              </NavLink>
+            )}
             <ThemeToggle />
             {isAuthed ? (
               <>

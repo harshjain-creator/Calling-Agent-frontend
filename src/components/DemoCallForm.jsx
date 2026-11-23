@@ -23,17 +23,19 @@ const CUSTOM = '__custom__'
  * resolves the full text (and re-validates access on its end).
  *
  * Props:
- *   onSuccess(data) — optional callback after successful POST /demo_call
+ *   onSuccess(data)      — optional callback after successful POST /demo_call
+ *   initialGender        — 'male' | 'female' preselected voice (e.g. from /demos)
+ *   initialScenarioText  — prefills a one-off custom scenario (e.g. from /demos)
  */
-export default function DemoCallForm({ onSuccess } = {}) {
+export default function DemoCallForm({ onSuccess, initialGender, initialScenarioText } = {}) {
   const { scenarios, loading: loadingScenarios, error: scenariosError } = useScenarios({ skipAuth: true })
 
   const [name,      setName]      = useState('')
   const [email,     setEmail]     = useState('')
   const [phone,     setPhone]     = useState('')
-  const [gender,    setGender]    = useState('male')
-  const [scenarioId, setScenarioId] = useState('')   // either a real id OR CUSTOM sentinel
-  const [customText, setCustomText] = useState('')
+  const [gender,    setGender]    = useState(initialGender || 'male')
+  const [scenarioId, setScenarioId] = useState(initialScenarioText ? CUSTOM : '')   // either a real id OR CUSTOM sentinel
+  const [customText, setCustomText] = useState(initialScenarioText || '')
   const [remaining, setRemaining] = useState(null)
   const [pending,   setPending]   = useState(false)
   const [success,   setSuccess]   = useState(false)

@@ -8,7 +8,7 @@ import DemoCallForm from '@/components/DemoCallForm'
  * Demo call popup launched from Landing's hero CTA. Wraps DemoCallForm in
  * a Dialog so callers stay on the landing page.
  */
-export default function DemoCallModal({ open, onOpenChange }) {
+export default function DemoCallModal({ open, onOpenChange, preset }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
@@ -26,7 +26,11 @@ export default function DemoCallModal({ open, onOpenChange }) {
           </div>
         </DialogHeader>
         <div className="pt-4">
-          <DemoCallForm />
+          <DemoCallForm
+            key={preset?.scenario || 'default'}
+            initialGender={preset?.gender}
+            initialScenarioText={preset?.scenario}
+          />
         </div>
       </DialogContent>
     </Dialog>

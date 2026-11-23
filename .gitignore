@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Demo audio is served from the Stratus bucket — never commit it
+public/demo-audio/
+.env

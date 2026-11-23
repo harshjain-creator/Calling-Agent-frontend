@@ -9,6 +9,7 @@ import About        from '@/pages/About'
 import Services     from '@/pages/Services'
 import Contact      from '@/pages/Contact'
 import DemoForm     from '@/pages/DemoForm'
+import DemosPage    from '@/pages/DemosPage'
 
 import ClientDashboard      from '@/pages/ClientDashboard'
 import AdminCalls           from '@/pages/AdminCalls'
@@ -34,6 +35,8 @@ export default function App() {
             <Route path="/contact"    element={<Contact />} />
             <Route path="/demo"       element={<DemoForm />} />
           </Route>
+          {/* Industry demo library — open to everyone, signed in or not */}
+          <Route path="/demos" element={<DemosPage />} />
 
           {/* Client admin + super admin shared scope */}
           <Route element={<RequireAuth roles={['client_admin', 'super_admin']} />}>
